@@ -1,0 +1,47 @@
+pipeline {
+ agent any
+ 
+ tools {
+        maven "3.9.9" 
+    }
+
+ environment {
+  DOCKERHUB_CREDENTIALS=credentials('dockerhub-credentials')
+ }
+
+ stages {
+  stage('Checkout Github') {
+   steps {
+    git branch: 'main', url: 'https://github.com/mglienecke/AcpCw2Template.git'
+   }
+  }
+
+  stage('Build Code') {
+   steps {
+      sh "mvn -version"    
+      sh "mvn clean package -Dmaven.test.skip"
+    } // withMaven will discover the generated Maven artifacts, JUnit Surefire & FailSafe reports and FindBugs reports
+   
+  }
+
+  stage('Login') {
+   steps {
+    sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+   }
+  }
+
+  stage('Build docker image') {
+   steps {
+    sh 'docker build --tag=mglienecke/acp-cw2-template:latest .'
+    sh 'docker image ls'
+    sh 'docker push mglienecke/acp-cw2-template:latest'
+   }
+  }
+ }
+
+ post {
+  always {
+   sh 'docker logout'
+  }
+ }
+}
