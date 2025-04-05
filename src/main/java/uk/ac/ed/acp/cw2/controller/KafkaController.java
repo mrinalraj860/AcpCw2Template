@@ -1,6 +1,7 @@
 package uk.ac.ed.acp.cw2.controller;
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.DeliverCallback;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -151,6 +152,33 @@ public class KafkaController {
 
 
 
+    @PostMapping("/publish")
+    public ResponseEntity<String> publishToKafka(@RequestBody Map<String, Object> request) {
+        String topic = (String) request.get("topic");
+        Map<String, Object> message = (Map<String, Object>) request.get("message");
+
+        if (topic == null || message == null) {
+            return ResponseEntity.badRequest().body("Missing 'topic' or 'message' field");
+        }
+
+        Properties kafkaProps = new Properties();
+        kafkaProps.put("bootstrap.servers", environment.getKafkaBootstrapServers());
+        kafkaProps.put("acks", "all");
+        kafkaProps.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        kafkaProps.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+
+        try (KafkaProducer<String, String> producer = new KafkaProducer<>(kafkaProps)) {
+            String messageJson = new ObjectMapper().writeValueAsString(message);
+            String key = message.get("key") != null ? message.get("key").toString() : UUID.randomUUID().toString();
+
+            ProducerRecord<String, String> record = new ProducerRecord<>(topic, key, messageJson);
+            producer.send(record);
+            return ResponseEntity.ok("Message published to Kafka topic: " + topic);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Kafka publish failed: " + e.getMessage());
+        }
+    }
 
 
     private String getAcpStorageServiceUrl() {
@@ -184,6 +212,10 @@ public class KafkaController {
         String writeQueueBad = (String) request.get("writeQueueBad");
         int messageCount = (int) request.get("messageCount");
 
+        if(messageCount > 500 ){
+            messageCount = 500;
+        }
+
         Properties kafkaProps = getKafkaProperties(environment);
         double goodTotal = 0.0;
         double badTotal = 0.0;
@@ -208,16 +240,18 @@ public class KafkaController {
                 for (ConsumerRecord<String, String> record : records) {
                     if (processed >= messageCount) break;
                     processed++;
-
+                    System.out.println(record.topic() + " " + record.partition() + " " + record.offset() + " " + record.value()+ " \n record:" + record);
                     JSONObject json = new JSONObject(record.value());
+                    System.out.println(json);
                     String key = json.getString("key");
                     double value = json.getDouble("value");
-
-                    if (key.length() <= 4) { // good message
+                    System.out.println("✅ Processed message:\n" + json.toString(2));
+                    if ((key.length() == 4) || (key.length() == 3)) { // good message
                         goodTotal += value;
                         json.put("runningTotalValue", goodTotal);
 
                         String uuid = storeInAcpStorage(json.toString());
+                        System.out.println(uuid);
                         json.put("uuid", uuid);
 
                         channel.basicPublish("", writeQueueGood, null, json.toString().getBytes());

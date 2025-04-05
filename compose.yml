@@ -23,26 +23,26 @@ services:
       # Required for a single node cluster
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
-#  rabbitmq:
-#    image: rabbitmq:latest
-#    networks:
-#      - my_network
-#    ports:
-#      - "5672:5672"
-#
-#  rabbitmq-management:
-#    image: rabbitmq:4.0-management
-#    networks:
-#      - my_network
-#    ports:
-#      - "15672:15672"
-#
-#  redis:
-#    image: redis
-#    networks:
-#      - my_network
-#    ports:
-#      - "6379:6379"
+  rabbitmq:
+    image: rabbitmq:latest
+    networks:
+      - my_network
+    ports:
+      - "5672:5672"
+
+  rabbitmq-management:
+    image: rabbitmq:4.0-management
+    networks:
+      - my_network
+    ports:
+      - "15672:15672"
+
+  redis:
+    image: redis
+    networks:
+      - my_network
+    ports:
+      - "6379:6379"
 
 networks:
   acp_network:
