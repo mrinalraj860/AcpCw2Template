@@ -26,6 +26,10 @@ public class RuntimeEnvironment {
     public static final String KAFKA_SASL_MECHANISM_ENV_VAR = "KAFKA_SASL_MECHANISM";
     public static final String KAFKA_SASL_JAAS_CONFIG_ENV_VAR = "KAFKA_SASL_JAAS_CONFIG";
 
+    public static final String BLOB_STORAGE_ENV_VAR = "ACP_STORAGE_SERVICE";
+
+    private String blobStorageBaseUrl;
+
     private String redisHost;
     private int redisPort;
     private String rabbitMqHost;
@@ -50,7 +54,7 @@ public class RuntimeEnvironment {
      */
     public static RuntimeEnvironment getEnvironment() {
         RuntimeEnvironment settings = new RuntimeEnvironment();
-
+        settings.setBlobStorageBaseUrl(System.getenv(BLOB_STORAGE_ENV_VAR) == null ? "https://acp-storage.azurewebsites.net" : System.getenv(BLOB_STORAGE_ENV_VAR));
         settings.setKafkaBootstrapServers(System.getenv(KAFKA_BOOTSTRAP_SERVERS_ENV_VAR) == null ? "localhost:9092" : System.getenv(KAFKA_BOOTSTRAP_SERVERS_ENV_VAR));
         settings.setKafkaInboundTopic(System.getenv(KAFKA_INBOUND_TOPIC) == null ? "cw2-inbound" : System.getenv(KAFKA_INBOUND_TOPIC));
         settings.setKafkaOutboundTopic(System.getenv(KAFKA_OUTBOUND_TOPIC) == null ? "cw2-outbound" : System.getenv(KAFKA_OUTBOUND_TOPIC));

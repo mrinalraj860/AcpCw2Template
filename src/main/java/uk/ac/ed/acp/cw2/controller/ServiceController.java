@@ -11,12 +11,11 @@ import uk.ac.ed.acp.cw2.data.RuntimeEnvironment;
  * and managing key-value pairs through POST requests.
  */
 @RestController()
-@RequestMapping("/api/v1")
+@RequestMapping("")
 public class ServiceController {
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceController.class);
     private final RuntimeEnvironment environment;
-
     public ServiceController(RuntimeEnvironment environment) {
         this.environment = environment;
     }
@@ -37,6 +36,6 @@ public class ServiceController {
 
     @GetMapping("/uuid")
     public String uuid() {
-        return "s12345678";
+        return "s2687419";
     }
 }

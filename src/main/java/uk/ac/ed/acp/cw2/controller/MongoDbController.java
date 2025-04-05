@@ -13,7 +13,7 @@ import uk.ac.ed.acp.cw2.data.RuntimeEnvironment;
  * key-value pairs in the cache.
  */
 @RestController()
-@RequestMapping("/api/v1/mongodb")
+@RequestMapping("/mongodb")
 public class MongoDbController {
 
     private static final Logger logger = LoggerFactory.getLogger(MongoDbController.class);
