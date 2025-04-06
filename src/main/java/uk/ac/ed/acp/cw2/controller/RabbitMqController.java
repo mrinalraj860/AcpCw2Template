@@ -108,6 +108,28 @@ public class RabbitMqController {
     }
 
 
+    @PostMapping("/sendJsonObjects/{queueName}")
+    public void sendJsonObjects(@PathVariable String queueName, @RequestBody List<Map<String, Object>> messages) {
+        logger.info("Sending {} JSON messages to queue {}", messages.size(), queueName);
+
+        try (Connection connection = factory.newConnection();
+             Channel channel = connection.createChannel()) {
+
+            channel.queueDeclare(queueName, false, false, false, null);
+            ObjectMapper mapper = new ObjectMapper();
+
+            for (Map<String, Object> message : messages) {
+                String json = mapper.writeValueAsString(message);
+                channel.basicPublish("", queueName, null, json.getBytes(StandardCharsets.UTF_8));
+                System.out.println(" [x] Sent JSON: " + json + " to queue: " + queueName);
+            }
+
+            logger.info("Successfully sent all JSON messages to {}", queueName);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to send JSON messages to RabbitMQ", e);
+        }
+    }
+
     @PostMapping("/sendStockSymbols/{queueName}/{symbolCount}")
     public void sendStockSymbols(@PathVariable String queueName, @PathVariable int symbolCount) {
         logger.info("Writing {} symbols in queue {}", symbolCount, queueName);

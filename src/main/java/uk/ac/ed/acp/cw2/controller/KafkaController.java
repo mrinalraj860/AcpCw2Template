@@ -340,10 +340,8 @@ public class KafkaController {
         String writeQueue = (String) request.get("writeQueue");
         int messageCount = (int) request.get("messageCount");
 
-        // Redis setup
         Jedis jedis = new Jedis(environment.getRedisHost(), environment.getRedisPort());
 
-        // RabbitMQ setup
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost(environment.getRabbitMqHost());
         factory.setPort(environment.getRabbitMqPort());
@@ -354,7 +352,6 @@ public class KafkaController {
         AtomicReference<Double> totalValueWritten = new AtomicReference<>(0.0);
         AtomicReference<Double> totalAdded = new AtomicReference<>(0.0);
 
-
         try (Connection connection = factory.newConnection();
              Channel channel = connection.createChannel()) {
 
@@ -364,10 +361,11 @@ public class KafkaController {
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String msgBody = new String(delivery.getBody(), StandardCharsets.UTF_8);
                 JSONObject message = new JSONObject(msgBody);
+                System.out.println("📥 Received message: " + message);
+
                 totalMessagesProcessed.getAndIncrement();
 
                 if (message.has("version") && message.has("value")) {
-                    // normal message
                     String key = message.getString("key");
                     int version = message.getInt("version");
                     double value = message.getDouble("value");
@@ -375,45 +373,49 @@ public class KafkaController {
                     String redisKey = "version:" + key;
                     int storedVersion = jedis.exists(redisKey) ? Integer.parseInt(jedis.get(redisKey)) : -1;
 
-                    if (storedVersion < version) {
-                        channel.basicPublish("", writeQueue, null, msgBody.getBytes(StandardCharsets.UTF_8));
-                        totalMessagesWritten.incrementAndGet();
-                        totalValueWritten.set(totalValueWritten.get() + value);
-                    } else {
+                    if (version > storedVersion) {
                         jedis.set(redisKey, String.valueOf(version));
-                        message.put("value", value + 10.5);
 
-                        totalMessagesWritten.incrementAndGet();
+                        // Modify value and enrich message
+                        double updatedValue = value + 10.5;
+                        message.put("value", updatedValue);
+
                         totalRedisUpdates.incrementAndGet();
-                        totalAdded.set(totalAdded.get() + 10.5);
-                        totalValueWritten.set(totalValueWritten.get() + value + 10.5);
+                        totalAdded.updateAndGet(v -> v + 10.5);
+                        totalValueWritten.updateAndGet(v -> v + updatedValue);
+                        totalMessagesWritten.incrementAndGet();
 
                         channel.basicPublish("", writeQueue, null, message.toString().getBytes(StandardCharsets.UTF_8));
+                        System.out.println("✅ Written updated version for key " + key);
+                    } else {
+                            channel.basicPublish("", writeQueue, null, msgBody.getBytes(StandardCharsets.UTF_8));
+                            totalMessagesWritten.incrementAndGet();
+                            totalValueWritten.updateAndGet(v -> v + value);
+                            System.out.println("↩️ Wrote original (unchanged) message for stale version of key " + key);
+                        }
                     }
-
-                } else if (message.has("key")) {
-                    // tombstone message
+                else if (message.has("key")) {
                     String key = message.getString("key");
                     jedis.del("version:" + key);
 
                     JSONObject summary = new JSONObject();
-                    summary.put("totalMessagesWritten", totalMessagesWritten.get());
                     summary.put("totalMessagesProcessed", totalMessagesProcessed.get());
+                    summary.put("totalMessagesWritten", totalMessagesWritten.get());
                     summary.put("totalRedisUpdates", totalRedisUpdates.get());
                     summary.put("totalValueWritten", totalValueWritten.get());
                     summary.put("totalAdded", totalAdded.get());
 
                     channel.basicPublish("", writeQueue, null, summary.toString().getBytes(StandardCharsets.UTF_8));
+                    System.out.println("🧾 Sent summary for key: " + key);
                 }
-
             };
 
-            // Start consuming and wait until messageCount is reached
             String consumerTag = channel.basicConsume(readQueue, true, deliverCallback, consumerTag1 -> {});
             while (totalMessagesProcessed.get() < messageCount) {
-                Thread.sleep(100); // allow time for messages
+                Thread.sleep(50);
             }
             channel.basicCancel(consumerTag);
+
         } catch (Exception e) {
             throw new RuntimeException("Error processing transformMessages", e);
         } finally {
