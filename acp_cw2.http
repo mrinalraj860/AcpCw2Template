@@ -14,5 +14,5 @@ POST http://127.0.0.1:8080/kafka/sendStockSymbols/stockvalues/1000
 GET http://127.0.0.1:8080/kafka/receiveStockSymbols/stockvalues/6000
 ###
 
-
+PUT http://localhost:8080/rabbitmq/input1/10
 ###

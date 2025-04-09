@@ -130,7 +130,27 @@
                         <RABBITMQ_HOST>localhost</RABBITMQ_HOST>
                         <RABBITMQ_PORT>5672</RABBITMQ_PORT>
                         <KAFKA_BOOTSTRAP_SERVERS>localhost:9092</KAFKA_BOOTSTRAP_SERVERS>
+                        <ACP_STORAGE_SERVICE>https://acp-storage.azurewebsites.net</ACP_STORAGE_SERVICE>
                     </environmentVariables>
+                </configuration>
+            </plugin>
+
+        <!-- Lombok Annotation Processor Support -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>1.18.30</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
         </plugins>

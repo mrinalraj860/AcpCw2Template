@@ -47,18 +47,18 @@ public class RabbitMqController {
 
 
     public final String StockSymbolsConfig = "stock.symbols";
-    @Value("${RABBITMQ_HOST}")
-    private String rabbitMqHost;
-
-    @Value("${RABBITMQ_PORT}")
-    private int rabbitMqPort;
+//    @Value("${RABBITMQ_HOST}")
+//    private String rabbitMqHost;
+//
+//    @Value("${RABBITMQ_PORT}")
+//    private int rabbitMqPort;
 
     // PUT endpoint (writing messages)
     @PutMapping("/{queueName}/{messageCount}")
     public void putMessages(@PathVariable String queueName, @PathVariable int messageCount) {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost(rabbitMqHost);
-        factory.setPort(rabbitMqPort);
+        factory.setHost(environment.getRabbitMqHost());
+        factory.setPort(environment.getRabbitMqPort());
 
         try (Connection connection = factory.newConnection();
              Channel channel = connection.createChannel()) {
@@ -80,8 +80,8 @@ public class RabbitMqController {
     @GetMapping("/{queueName}/{timeoutInMsec}")
     public List<String> getMessages(@PathVariable String queueName, @PathVariable int timeoutInMsec) {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost(rabbitMqHost);
-        factory.setPort(rabbitMqPort);
+        factory.setHost(environment.getRabbitMqHost());
+        factory.setPort(environment.getRabbitMqPort());
 
         List<String> result = new ArrayList<>();
 
